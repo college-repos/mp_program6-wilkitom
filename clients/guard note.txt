@@ -1,0 +1,2 @@
+
+If guard hits the MoveFaster powerUp, it will stop firing, because it moves first, then fires and scans.
