@@ -1,5 +1,6 @@
 package com.example.thomaswilkinson.program6;
 
+import android.app.Activity;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -18,10 +19,8 @@ import java.net.InetAddress;
 import java.net.Socket;
 
 public class MainActivity extends AppCompatActivity {
-    double shootAngle = 0;
-    double moveAngle = 0;
-    int port = 3012;
-    String ipAdr, hostName;
+    String hostName;
+    doNetwork stuff;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -29,40 +28,71 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
 
+        //Set EditTexts, assign EditTexts for server connection, initiate server connection
+        final EditText hostNameET = findViewById(R.id.HostName);
+        Button goBtn = findViewById(R.id.button);
+        goBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+                hostName = hostNameET.getText().toString();
+                serverConnection();
+
+            }
+        });
+        Button stopBtn = findViewById(R.id.stop);
+        stopBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                stuff.moveMessage = "noop";
+            }
+        });
+        Button scanBtn = findViewById(R.id.scan);
+        scanBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                stuff.tmpMsg = stuff.moveMessage;
+                stuff.moveMessage = "scan";
+            }
+        });
         //Set joysticks and listeners
         JoyStickView joyStickView = findViewById(R.id.joy);
         joyStickView.setOnMoveListener(new JoyStickView.OnMoveListener() {
             @Override
             public void onMove(double angle, float strength) {
-                shootAngle = angle;
+                calculateShoot(angle);
             }
         });
         JoyStickView joyStickView2 = findViewById(R.id.joy2);
         joyStickView2.setOnMoveListener(new JoyStickView.OnMoveListener() {
             @Override
             public void onMove(double angle, float strength) {
-                moveAngle = angle;
-            }
-        });
-
-
-        //Set EditTexts, assign EditTexts for server connection, initiate server connection
-        final EditText hostNameET = findViewById(R.id.HostName);
-        final EditText ipAddressET = findViewById(R.id.IPAddress);
-        Button goBtn = findViewById(R.id.button);
-        goBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                hostName = hostNameET.getText().toString();
-                ipAdr = ipAddressET.getText().toString();
+                calculateMove(angle, strength);
             }
         });
     }
 
-
+    void calculateMove(double angle, float str)
+    {
+        if(angle > 23 && angle < 67) stuff.moveMessage=("move 1 -1");
+        else if(angle > 68 && angle < 113) stuff.moveMessage=("move 0 -1");
+        else if(angle > 112 && angle < 157) stuff.moveMessage=("move -1 -1");
+        else if(angle > 158 && angle < 202) stuff.moveMessage=("move -1 0");
+        else if(angle > 203 && angle < 247) stuff.moveMessage=("move -1 1");
+        else if(angle > 248 && angle < 292) stuff.moveMessage=("move 0 1");
+        else if(angle > 293 && angle < 337) stuff.moveMessage=("move 1 1");
+        else stuff.moveMessage=("move 1 0");
+    }
+    void calculateShoot(double angle)
+    {
+        int i = (int) angle;
+        i = Math.abs(i-360);
+        String str = Integer.toString(i);
+        stuff.shootMessage = "fire "+str;
+    }
     //Connect to server, run thread
     public void serverConnection(){
-        doNetwork stuff = new doNetwork();
+        stuff = new doNetwork(hostName);
         Thread myNet = new Thread(stuff);
         myNet.start();
     }
@@ -70,39 +100,78 @@ public class MainActivity extends AppCompatActivity {
 }
 
 class doNetwork implements Runnable {
+    doNetwork(String hostName){
+        this.hostName = hostName;
+    }
     public PrintWriter out;
     public BufferedReader in;
-
+    Activity activity;
+    String tmpMsg = "noop";
+    String shootMessage = "fire 1";
+    String moveMessage = "move -1 -1";
+    int port = 3012;
+    String hostName;
+    Boolean done = true;
     public void run() {
-        int p = Integer.parseInt(port.getText().toString());
-        String h = hostname.getText().toString();
-        mkmsg("host is " + h + "\n");
-        mkmsg(" Port is " + p + "\n");
-        try {
-            InetAddress serverAddr = InetAddress.getByName(h);
-            mkmsg("Attempt Connecting..." + h + "\n");
-            Socket socket = new Socket(serverAddr, p);
-            String message = "Hello from Client android emulator";
 
-            //made connection, setup the read (in) and write (out)
+
+        try {
+            InetAddress serverAddr = InetAddress.getByName(hostName);
+            Socket socket = new Socket(serverAddr, port);
+
+            //setting up read/write streams
             out = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream())), true);
             in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
             //now send a message to the server and then read back the response.
             try {
-                //write a message to the server
-                mkmsg("Attempting to send message ...\n");
-                out.println(message);
-                mkmsg("Message sent...\n");
-
-                //read back a message from the server.
-                mkmsg("Attempting to receive a message ...\n");
+                //read server connection message
                 String str = in.readLine();
-                mkmsg("received a message:\n" + str + "\n");
+                //write bot values
+                out.println("TomBot 0 0 0");
+                //read bot info
+                str = in.readLine();
+                if(str == "setup error")
+                {
+                    out.println("TomBot 0 0 5");
+                }
+                while(done)
+                {
+                    //for(int i=0; i<10; i++) str = in.readLine();
+                    out.println(shootMessage);
+                    for(int i=0; i<5; i++) {
+                        out.println(moveMessage);
+                        if(moveMessage == "scan") moveMessage = tmpMsg;
+                    }
+                    for(int i=0; i<6; i++) {
+                        str = in.readLine();
+                        if(str.charAt(0)=='I')
+                        {
+                            i--;
+                        }
+                        if(str.equals("Info Dead") || str.equals("Info GameOver"))
+                        {
+                            done = false;
+                        }
+                    }
+                    for(int i=0; i<5; i++) {
+                        out.println(moveMessage);
+                        if(moveMessage == "scan") moveMessage = tmpMsg;
+                    }
+                    for(int i=0; i<5; i++) {
+                        str = in.readLine();
+                        if(str.charAt(0)=='I')
+                        {
+                            i--;
+                        }
+                        if(str.equals("Info Dead") || str.equals("Info GameOver"))
+                        {
+                            done = false;
+                        }
+                    }
+                }
 
-                mkmsg("We are done, closing connection\n");
             } catch (Exception e) {
-                mkmsg("Error happened sending/receiving\n");
 
             } finally {
                 in.close();
@@ -111,7 +180,8 @@ class doNetwork implements Runnable {
             }
 
         } catch (Exception e) {
-            mkmsg("Unable to connect...\n");
         }
     }
+
+
 }
