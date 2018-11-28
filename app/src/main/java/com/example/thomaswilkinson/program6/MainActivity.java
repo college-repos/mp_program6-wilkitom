@@ -1,3 +1,6 @@
+//Author: Thomas Wilkinson
+//Last update: 11/27/2018
+
 package com.example.thomaswilkinson.program6;
 
 import android.app.Activity;
@@ -40,6 +43,7 @@ public class MainActivity extends AppCompatActivity {
 
             }
         });
+        //Set onclick listeners to stop bot, scan
         Button stopBtn = findViewById(R.id.stop);
         stopBtn.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -72,6 +76,7 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    //take joystick information and set move message
     void calculateMove(double angle, float str)
     {
         if(angle > 23 && angle < 67) stuff.moveMessage=("move 1 -1");
@@ -83,6 +88,8 @@ public class MainActivity extends AppCompatActivity {
         else if(angle > 293 && angle < 337) stuff.moveMessage=("move 1 1");
         else stuff.moveMessage=("move 1 0");
     }
+
+    //take joystick information and set shoot message
     void calculateShoot(double angle)
     {
         int i = (int) angle;
@@ -116,6 +123,7 @@ class doNetwork implements Runnable {
 
 
         try {
+            //Connect to server
             InetAddress serverAddr = InetAddress.getByName(hostName);
             Socket socket = new Socket(serverAddr, port);
 
@@ -137,7 +145,7 @@ class doNetwork implements Runnable {
                 }
                 while(done)
                 {
-                    //for(int i=0; i<10; i++) str = in.readLine();
+                    //send shoot message, then send half of necessary move messages, then read, then send, then read
                     out.println(shootMessage);
                     for(int i=0; i<5; i++) {
                         out.println(moveMessage);
