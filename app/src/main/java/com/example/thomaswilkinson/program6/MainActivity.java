@@ -161,6 +161,17 @@ class doNetwork implements Runnable {
                         {
                             done = false;
                         }
+                        if(str.charAt(0)=='s')
+                        {
+                            while(true)
+                            {
+                                str = in.readLine();
+                                if(str.charAt(0)!= 's')
+                                {
+                                    break;
+                                }
+                            }
+                        }
                     }
                     for(int i=0; i<5; i++) {
                         out.println(moveMessage);
@@ -175,6 +186,17 @@ class doNetwork implements Runnable {
                         if(str.equals("Info Dead") || str.equals("Info GameOver"))
                         {
                             done = false;
+                        }
+                        if(str.charAt(0)=='s')
+                        {
+                            while(true)
+                            {
+                                str = in.readLine();
+                                if(str.charAt(0)!= 's')
+                                {
+                                    break;
+                                }
+                            }
                         }
                     }
                 }
